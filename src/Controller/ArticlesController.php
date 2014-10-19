@@ -6,6 +6,23 @@ use Cake\Network\Exception\NotFoundException;
 class ArticlesController extends AppController {
 	public $components = ['Flash'];
 
+	public function isAuthorized($user) {
+		// All registered users can add articles
+		if ($this->request->action === 'add') {
+			return true;
+		}
+
+		// The owner of an article can edit and delete it
+		if (in_array($this->request->action, ['edit', 'delete'])) {
+			$articleId = (int)$this->request->params['pass'][0];
+			if ($this->Articles->isOwnedBy($articleId, $user['id'])) {
+				return true;
+			}
+		}
+
+		return parent::isAuthorized($user);
+	}
+
 	public function index() {
 		$this->set('articles', $this->Articles->find('all'));
 	}
@@ -22,6 +39,8 @@ class ArticlesController extends AppController {
 	public function add() {
 		$article = $this->Articles->newEntity($this->request->data);
 		if ($this->request->is('post')) {
+			// Added this line
+			$article->user_id = $this->Auth->user('id');
 			if ($this->Articles->save($article)) {
 				$this->Flash->success(__('Your article has been saved.'));
 				return $this->redirect(['action' => 'index']);
