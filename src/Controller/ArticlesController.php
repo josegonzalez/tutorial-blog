@@ -6,6 +6,15 @@ use Cake\Network\Exception\NotFoundException;
 class ArticlesController extends AppController {
 	public $components = ['Flash'];
 
+	public function initialize() {
+		parent::initialize();
+		$this->loadComponent('Paginator', [
+			'className' => '\App\Controller\Component\DatatablePaginatorComponent',
+			'searchField' => 'title',
+		]);
+		$this->loadComponent('RequestHandler');
+	}
+
 	public function isAuthorized($user) {
 		// All registered users can add articles
 		if ($this->request->action === 'add') {
@@ -26,6 +35,20 @@ class ArticlesController extends AppController {
 	public function index() {
 		$this->set('articles', $this->Articles->find('all'));
 	}
+
+	public function datatables() {
+		$columns = $this->Articles->schema()->columns();
+		$articles = $this->paginate();
+
+		$dataKey = 'articles';
+		if ($this->request->is('post')) {
+			$dataKey = 'data';
+			$this->set('_serialize', ['data']);
+		}
+
+		$this->set(['columns' => $columns, $dataKey => $articles]);
+	}
+
 
 	public function view($id) {
 		if (!$id) {
